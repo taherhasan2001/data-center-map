@@ -110,7 +110,7 @@ function getCell(column, row) {
 }
 
 /* ==============================
-   Read input
+   Read and validate input
 ============================== */
 
 function parseLocation(value) {
@@ -155,7 +155,22 @@ function parseLocation(value) {
 }
 
 /* ==============================
-   Shortest path calculation
+   Aisle helpers
+============================== */
+
+function getAisleNumber(columnNumber) {
+    return Math.floor((columnNumber - 1) / 2) + 1;
+}
+
+function getAisleElement(aisleNumber) {
+    const aisleElements =
+        document.querySelectorAll(".aisle");
+
+    return aisleElements[aisleNumber - 1] || null;
+}
+
+/* ==============================
+   Calculate top/bottom route
 ============================== */
 
 function calculateShortestPath(start, end) {
@@ -164,7 +179,7 @@ function calculateShortestPath(start, end) {
         horizontalMovementCost;
 
     /*
-        Top path exits through Row 11.
+        Top route exits through Row 11.
     */
     const topDistance =
         Math.abs(start.row - firstRow) +
@@ -172,7 +187,7 @@ function calculateShortestPath(start, end) {
         Math.abs(end.row - firstRow);
 
     /*
-        Bottom path exits through Row 100.
+        Bottom route exits through Row 100.
     */
     const bottomDistance =
         Math.abs(lastRow - start.row) +
@@ -236,6 +251,39 @@ function drawShortestPath() {
         return;
     }
 
+    startCell.classList.add("start-location");
+    endCell.classList.add("end-location");
+
+    const startAisle = getAisleNumber(start.column);
+    const endAisle = getAisleNumber(end.column);
+
+    /*
+        Special case:
+        Both locations are inside the same aisle.
+    */
+    if (startAisle === endAisle) {
+        drawSameAislePath(
+            startCell,
+            endCell,
+            startAisle
+        );
+
+        const sameAisleDistance =
+            Math.abs(start.row - end.row);
+
+        showMessage(
+            `Same aisle route selected. ` +
+            `Distance: ${sameAisleDistance}.`,
+            "success"
+        );
+
+        return;
+    }
+
+    /*
+        Normal case:
+        Locations are in different aisles.
+    */
     const path = calculateShortestPath(start, end);
 
     const startExitCell = getCell(
@@ -247,9 +295,6 @@ function drawShortestPath() {
         end.column,
         path.exitRow
     );
-
-    startCell.classList.add("start-location");
-    endCell.classList.add("end-location");
 
     startExitCell.classList.add("route-exit");
     endExitCell.classList.add("route-exit");
@@ -266,11 +311,7 @@ function drawShortestPath() {
         endPoint
     ];
 
-    const pointsText = points
-        .map(point => `${point.x},${point.y}`)
-        .join(" ");
-
-    routeLine.setAttribute("points", pointsText);
+    setRoutePoints(points);
 
     showMessage(
         `${capitalize(path.side)} path selected. ` +
@@ -280,6 +321,58 @@ function drawShortestPath() {
         "success"
     );
 }
+
+/* ==============================
+   Same-aisle route
+============================== */
+
+function drawSameAislePath(
+    startCell,
+    endCell,
+    aisleNumber
+) {
+    const aisleElement =
+        getAisleElement(aisleNumber);
+
+    if (!aisleElement) {
+        return;
+    }
+
+    const startPoint = getCellCenter(startCell);
+    const endPoint = getCellCenter(endCell);
+
+    const aisleCenterX =
+        getElementCenterX(aisleElement);
+
+    /*
+        Route:
+        Start location
+        → center of aisle
+        → move vertically
+        → destination
+    */
+    const points = [
+        startPoint,
+
+        {
+            x: aisleCenterX,
+            y: startPoint.y
+        },
+
+        {
+            x: aisleCenterX,
+            y: endPoint.y
+        },
+
+        endPoint
+    ];
+
+    setRoutePoints(points);
+}
+
+/* ==============================
+   Coordinate helpers
+============================== */
 
 function getCellCenter(cell) {
     const cellRect = cell.getBoundingClientRect();
@@ -298,16 +391,44 @@ function getCellCenter(cell) {
     };
 }
 
+function getElementCenterX(element) {
+    const elementRect =
+        element.getBoundingClientRect();
+
+    const mapRect =
+        mapArea.getBoundingClientRect();
+
+    return (
+        elementRect.left -
+        mapRect.left +
+        elementRect.width / 2
+    );
+}
+
+function setRoutePoints(points) {
+    const pointsText = points
+        .map(point => `${point.x},${point.y}`)
+        .join(" ");
+
+    routeLine.setAttribute(
+        "points",
+        pointsText
+    );
+}
+
 /* ==============================
-   Clear path
+   Clear route
 ============================== */
 
 function clearPath(resetMessage = true) {
     routeLine.setAttribute("points", "");
 
-    const highlightedCells = document.querySelectorAll(
-        ".start-location, .end-location, .route-exit"
-    );
+    const highlightedCells =
+        document.querySelectorAll(
+            ".start-location, " +
+            ".end-location, " +
+            ".route-exit"
+        );
 
     highlightedCells.forEach(cell => {
         cell.classList.remove(
@@ -324,9 +445,14 @@ function clearPath(resetMessage = true) {
     }
 }
 
+/* ==============================
+   Messages
+============================== */
+
 function showMessage(message, type) {
     pathResult.textContent = message;
-    pathResult.className = `path-result ${type}`;
+    pathResult.className =
+        `path-result ${type}`;
 }
 
 function capitalize(value) {
@@ -345,30 +471,45 @@ findPathButton.addEventListener(
     drawShortestPath
 );
 
-clearPathButton.addEventListener("click", () => {
-    clearPath(true);
-});
-
-startInput.addEventListener("keydown", event => {
-    if (event.key === "Enter") {
-        drawShortestPath();
+clearPathButton.addEventListener(
+    "click",
+    () => {
+        clearPath(true);
     }
-});
+);
 
-endInput.addEventListener("keydown", event => {
-    if (event.key === "Enter") {
-        drawShortestPath();
+startInput.addEventListener(
+    "keydown",
+    event => {
+        if (event.key === "Enter") {
+            drawShortestPath();
+        }
     }
-});
+);
 
-window.addEventListener("resize", () => {
-    const start = parseLocation(startInput.value);
-    const end = parseLocation(endInput.value);
-
-    if (start && end) {
-        drawShortestPath();
+endInput.addEventListener(
+    "keydown",
+    event => {
+        if (event.key === "Enter") {
+            drawShortestPath();
+        }
     }
-});
+);
+
+window.addEventListener(
+    "resize",
+    () => {
+        const start =
+            parseLocation(startInput.value);
+
+        const end =
+            parseLocation(endInput.value);
+
+        if (start && end) {
+            drawShortestPath();
+        }
+    }
+);
 
 /* ==============================
    Start application
