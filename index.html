@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Data Center Smart Map</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="page">
+
+        <header class="control-panel">
+            <h1>Data Center Smart Map</h1>
+
+            <div class="location-inputs">
+
+                <label>
+                    Start location
+                    <input
+                        id="startLocation"
+                        type="text"
+                        placeholder="50,20"
+                    >
+                </label>
+
+                <label>
+                    End location
+                    <input
+                        id="endLocation"
+                        type="text"
+                        placeholder="60,30"
+                    >
+                </label>
+
+                <button id="findPathButton">
+                    Find shortest path
+                </button>
+
+                <button
+                    id="clearPathButton"
+                    class="secondary-button"
+                >
+                    Clear
+                </button>
+
+            </div>
+
+            <p id="pathResult" class="path-result">
+                Enter locations as column,row
+            </p>
+        </header>
+
+        <main id="mapArea" class="map-area">
+
+            <div
+                id="dataCenterMap"
+                class="data-center-map"
+            ></div>
+
+            <svg
+                id="pathOverlay"
+                class="path-overlay"
+            >
+                <polyline
+                    id="routeLine"
+                    class="route-line"
+                    points=""
+                ></polyline>
+            </svg>
+
+        </main>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
